@@ -1,4 +1,5 @@
 #include "radicom.h"
+#include <stddef.h>
 
 void rc_set_datetime (rcdt_t* datetime_dst, unsigned char day, unsigned char month, unsigned short year, unsigned char hours, unsigned char minutes, unsigned char seconds)
 {
@@ -75,6 +76,14 @@ rcstatus_t rc_read_header (const unsigned char* frame, rchdr_t* hdr)
     return RC_OK;
 }
 
+void rc_clear_frame(unsigned char* frame)
+{
+    for (int i = 0; i < RC_FRAME_SIZE; i++)
+    {
+        frame[i] = 0;
+    }
+}
+
 inline rcstatus_t rc_q_read (unsigned char* frame)
 {
     return rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_READ, RC_EC_OK);
@@ -129,4 +138,131 @@ rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int
     }
 
     return RC_OK;
+}
+
+rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+{
+    for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN; i++)
+    {
+        frame[i] = (unsigned char)gpsdata[i];
+    }
+
+    for (int i = RC_HEADER_SIZE + RC_GPS_DATALEN; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i++)
+    {
+        frame[i] = (*datetime)[i - (RC_HEADER_SIZE + RC_GPS_DATALEN)];
+    }
+
+    for (int i = RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE + sizeof(unsigned int); i++)
+    {
+        frame[i] = (radiation & 0xFF << (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)))) >> (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)));
+    }
+    return RC_OK;
+}
+
+rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+{
+    rcstatus_t res = rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_READ, ec);
+    if (RC_OK != res)
+    {
+        return res;
+    }
+    return _frame_r_read(frame, gpsdata, datetime, radiation, ec);
+}
+
+rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last)
+{
+    rcstatus_t res = rc_fill_header(frame, RC_R, !is_last, RC_FC_READ, ec);
+    if (RC_OK != res)
+    {
+        return res;
+    }
+    return _frame_r_read(frame, gpsdata, datetime, radiation, ec);
+}
+
+rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec)
+{
+    return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec);
+}
+
+rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param))
+{
+    rcstatus_t res = rc_read_header(frame, hdr);
+    if (RC_OK != res)
+    {
+        return res;
+    }
+
+    /* Received error code handling */
+    switch (hdr->ec)
+    {
+        case RC_EC_OK:
+        break;
+        case RC_EC_GPS_ERR:
+        if (NULL != callbacks[RC_CB_GPS_ERR])
+            res = (*callbacks[RC_CB_GPS_ERR])(frame, NULL);
+        else
+            res = RC_ERR_NULL_CB;
+        break;
+        case RC_EC_RTC_ERR:
+        if (NULL != callbacks[RC_CB_RTC_ERR])
+            res = (*callbacks[RC_CB_RTC_ERR])(frame, NULL);
+        else
+            res = RC_ERR_NULL_CB;
+        break;
+        case RC_EC_ALARM:
+        if (NULL != callbacks[RC_CB_ALARM])
+            res = (*callbacks[RC_CB_ALARM])(frame, NULL);
+        else
+            res = RC_ERR_NULL_CB;
+        break;
+        default:
+            res = RC_GEN_ERROR;
+        break;
+    }
+
+    switch (hdr->fc)
+    {
+        case RC_FC_READ:
+        {
+            if (RC_Q == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_READ_Q])
+                    res = (*callbacks[RC_CB_READ_Q])(frame, NULL);
+                else
+                    res = RC_ERR_NULL_CB;
+            }
+            break;
+        }
+        case RC_FC_MEM_READ:
+        {
+            if (RC_Q == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_MEMREAD_Q])
+                    res = (*callbacks[RC_CB_MEMREAD_Q])(frame, NULL);
+                else
+                    res = RC_ERR_NULL_CB;
+            }
+            break;
+        }
+        case RC_FC_SET_DATE_TIME:
+        {
+            if (RC_Q == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_SETDT_Q])
+                    res = (*callbacks[RC_CB_SETDT_Q])(frame, (frame+RC_HEADER_SIZE));
+                else
+                    res = RC_ERR_NULL_CB;
+            } else if (RC_R == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_SETDT_R])
+                    res = (*callbacks[RC_CB_SETDT_R])(frame, (frame+RC_HEADER_SIZE));
+                else
+                    res = RC_ERR_NULL_CB;
+            }
+            break;
+        }
+    }
+
+    return res;
 }

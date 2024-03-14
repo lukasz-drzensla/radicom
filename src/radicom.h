@@ -5,7 +5,8 @@
 enum RC_FRAME {
     RC_FRAME_SIZE = 100,
     RC_HEADER_SIZE = 2,
-    RC_DATETIME_SIZE = 5
+    RC_DATETIME_SIZE = 5,
+    RC_GPS_DATALEN = 80
 };
 
 /* sizes in bits */
@@ -47,8 +48,23 @@ typedef enum {
     RC_OK = 0,
     RC_GEN_ERROR = 1,
     RC_ERROR_PARAM = 2,
-    RC_ERR_BAD_FRAME = 3
+    RC_ERR_BAD_FRAME = 3,
+    RC_ERR_NULL_CB = 4
 }  rcstatus_t;
+
+/* callbacks */
+/* The following callbacks have to be defined on the application level. RC_NUMO_CB represents the number of callbacks, it is not a callback itself.
+* A prototype for each callback has been provided in callbacks.h.*/
+enum RC_CALLBACKS {
+    RC_CB_GPS_ERR,
+    RC_CB_RTC_ERR,
+    RC_CB_ALARM,
+    RC_CB_READ_Q,
+    RC_CB_MEMREAD_Q,
+    RC_CB_SETDT_Q,
+    RC_CB_SETDT_R,
+    RC_NUMO_CB
+};
 
 typedef struct {
     unsigned char qr;
@@ -66,18 +82,78 @@ void rc_get_datetime (rcdt_t* datetime_src, unsigned char* day, unsigned char* m
 /* helper power function */
 unsigned char rc_uc_pow (unsigned char base, unsigned char exp);
 
-/*header manipulation functions */
+/* header manipulation functions */
 rcstatus_t rc_fill_header (unsigned char* frame, unsigned char qr, unsigned char more, unsigned char fc, unsigned char ec);
 rcstatus_t rc_put_header (unsigned char* frame, const rchdr_t* hdr);
 rcstatus_t rc_read_header (const unsigned char* frame, rchdr_t* hdr);
 
+/* frame manipulation functions */
+void rc_clear_frame(unsigned char* frame);
+
+/* send functions */
 /* query functions */
+/* ------------------------------------------------------ */
+
+/**
+ * @brief Fill the frame with query to read a single measurement (eg current one)
+ * @param frame buffer
+*/
 rcstatus_t rc_q_read (unsigned char* frame);
+/**
+ * @brief Fill the frame with query to read all measurements stored in memory
+ * @param frame buffer
+*/
 rcstatus_t rc_q_memread (unsigned char* frame);
+/**
+ * @brief Fill the frame with query to set date and time in rtc
+ * @param frame buffer
+ * @param datetime date and time of the readout
+*/
 rcstatus_t rc_q_setdt (unsigned char* frame, rcdt_t* datetime);
+/**
+ * @brief Fill the frame with query to calibrate. Sending this query implies all necessary data has already been collected. The application needs to take care of this.
+ * @param ext0 first measurement of an external device
+ * @param ext1 second measurement of an external device
+ * @param meas0 first measurement from calibrated device corresponding to first external measurement
+ * @param meas1 second measurement from calibrated device corresponding to second external measurement
+*/
 rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int ext1, unsigned int meas0, unsigned int meas1);
+/* ------------------------------------------------------ */
+
 
 /* response functions */
-/* TODO */
+/* ------------------------------------------------------ */
+
+/**
+ * @brief Fill the frame with read data from gps, radiation sensor and rtc
+ * @param frame buffer
+ * @param gpsdata left-zero-padded buffer with length of RC_GPS_DATALEN
+ * @param datetime date and time of the readout
+ * @param radiation readout from the radiation sensor
+ * @param ec error code
+ * @return rcstatus_t RC_OK on success, error otherwise
+*/
+rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+/**
+ * @brief Fill the frame with gps, radiation and rtc data stored in memory. This function is meant to be called in a loop.
+ * @param frame buffer
+ * @param gpsdata left-zero-padded buffer with length of RC_GPS_DATALEN
+ * @param datetime date and time of the readout
+ * @param radiation readout from the radiation sensor
+ * @param ec error code
+ * @param is_last 0 if the provided data is not the last one in stored memory, 1 if it is
+ * @return rcstatus_t RC_OK on success, error otherwise
+*/
+rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last);
+/**
+ * @brief Fill the frame with response for setting date and time.
+ * @param frame buffer
+ * @param ec error code
+*/
+rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec);
+/* ------------------------------------------------------ */
+
+/* receive functions */
+rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param));
 
 #endif /* _RADICOM_H */
