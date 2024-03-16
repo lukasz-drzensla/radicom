@@ -188,7 +188,7 @@ rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec)
     return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec);
 }
 
-rcstatus_t rc_process_read (unsigned char* frame, fraddata* fdata)
+rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata)
 {
     for (int i = RC_HEADER_SIZE; i < RC_GPS_DATALEN + RC_HEADER_SIZE; i++)
     {

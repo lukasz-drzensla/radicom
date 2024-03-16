@@ -83,7 +83,7 @@ typedef struct {
     unsigned char minutes;
     unsigned char seconds;
     unsigned int radiation;
-} fraddata;
+} rcfdataupck_t; /* full data unpacked */
 
 typedef unsigned char rcdt_t [RC_DATETIME_SIZE];
 
@@ -164,6 +164,6 @@ rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec);
 
 /* receive functions */
 rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param));
-rcstatus_t rc_process_read (unsigned char* frame, fraddata* fdata);
+rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata);
 
 #endif /* _RADICOM_H */

@@ -1,7 +1,10 @@
 #!/bin/bash
 
-javac src/JRadicom.java
+rm src/jradicom/*.class
+rm src/example/*.class
 
-javac -h src src/JRadicom.java
+javac src/jradicom/JRadicom.java src/example/Main.java
+
+javac -h src/jradicom src/jradicom/JRadicom.java
 make clean
 make

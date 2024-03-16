@@ -159,7 +159,7 @@ rcstatus_t rc_setdt_r_cb (unsigned char* frame, void* ec)
 rcstatus_t rc_read_r_cb (unsigned char* frame, void* null_param)
 {
     printf("read r cb\n");
-    fraddata tfulldata;
+    rcfdataupck_t tfulldata;
 
     rcstatus_t res = rc_process_read(frame, &tfulldata);
 

@@ -2,4 +2,6 @@ out
 out/*
 lib
 lib/*
+src/example/*.class
+src/jradicom/*.class
 .vscode/

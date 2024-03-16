@@ -23,7 +23,7 @@ LIB_OBJS = $(LIB_DIR)/libCRadicom.so
 
 APP_OPT = -DDBG
 
-INCLUDE = $(SRC_DIR)
+INCLUDE = -I$(SRC_DIR) -I$(SRC_DIR)/jradicom
 
 default: $(BUILD_DIR) $(APP) $(LIB_DIR) $(LIB_OBJS)
 
@@ -34,13 +34,14 @@ $(LIB_DIR):
 	@mkdir $(LIB_DIR)
 
 $(OBJECTS):$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -I$(INCLUDE) $(APP_OPT) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) -c $< -o $@
 
 $(APP): $(OBJECTS)
-	$(CC) $(CFLAGS) -I$(INCLUDE) $(APP_OPT) $(OBJECTS) -o $@
+	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) $(OBJECTS) -o $@
 
+#TODO: replace $(BUILD_DIR)/radicom.o with $(OBJECTS) when main.o moved
 $(LIB_OBJS):$(LIB_DIR)/lib%.so: $(SRC_DIR)/%.c
-	$(CC) $(JNI_FLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(JNI_FLAGS) $(INCLUDE) $< -o $@ $(BUILD_DIR)/radicom.o
 
 clean:
 	rm -rf $(BUILD_DIR)/*.o

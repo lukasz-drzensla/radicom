@@ -1,14 +1,34 @@
-class JRadicom {
+package jradicom;
 
-    interface RCCallbacks {
-        public void gps_error();
-        public void rtc_error();
-        public void alarm();
+public class JRadicom {
 
-        public void read_r_cb(fraddata fdata);
+    public interface RCCallbacks {
+        public void gps_error_cb();
+        public void rtc_error_cb();
+        public void alarm_cb();
+
+        public void read_r_cb(rcfdataupck_t fdata);
     }
 
-    enum rcstatus_t {
+    public class rcfdataupck_t {
+        public String gpsdata;
+        public int day;
+        public int month;
+        public int year;
+        public int hours;
+        public int minutes;
+        public int seconds;
+        public int radiation;
+    }
+
+    public class rchdr_t {
+        boolean qr = false;
+        boolean more = false;
+        int fc = 0;
+        int ec = 0;
+    }
+
+    public enum rcstatus_t {
         RC_OK,
         RC_GEN_ERROR,
         RC_ERROR_PARAM,
@@ -16,7 +36,7 @@ class JRadicom {
         RC_ERR_NULL_CB
     }
 
-    class RC {
+    public class RC {
         static final int FC_READ = 0;
         static final int FC_MEM_READ = 1;
         static final int FC_SET_DATE_TIME = 2;
@@ -29,30 +49,20 @@ class JRadicom {
 
         static final int GPS_DATALEN = 80;
     }
-    
-    class fraddata {
-        String gpsdata;
-        int day;
-        int month;
-        int year;
-        int hours;
-        int minutes;
-        int seconds;
-        int radiation;
-    }
 
-    class rchdr_t {
-        boolean qr = false;
-        boolean more = false;
-        int fc = 0;
-        int ec = 0;
-    }
-
-    //Functions for sending requests
+    //Functions for sending queries
     private native int[] q_read();
-    private native int[] q_memread();
-    private native int[] q_setdt(int day, int month, int year, int hours, int minutes, int seconds);
-    private native int[] q_calibrate(int ext0, int ext1, int meas0, int meas1);
+    public native int[] q_memread();
+    public native int[] q_setdt(int day, int month, int year, int hours, int minutes, int seconds);
+    public native int[] q_calibrate(int ext0, int ext1, int meas0, int meas1);
+
+    //Functions for sending responses - useful for tests
+    public native int[] r_read();
+
+    public int[] rc_q_read() 
+    {
+        return q_read();
+    }
 
     /* Function for decoding header
      * Returns an array of integers of len JHDR_LEN = 4. Meaning of indexes:
@@ -84,9 +94,9 @@ class JRadicom {
         return hdr;
     }
 
-    private fraddata rc_process_read(int[] frame)
+    private rcfdataupck_t rc_process_read(int[] frame)
     {
-        fraddata tfulldata = new fraddata();
+        rcfdataupck_t tfulldata = new rcfdataupck_t();
 
         int[] processed = process_read(frame);
 
@@ -123,13 +133,13 @@ class JRadicom {
                 case RC.EC_OK:
                 break;
                 case RC.EC_GPS_ERR:
-                callbacks.gps_error();
+                callbacks.gps_error_cb();
                 break;
                 case RC.EC_RTC_ERR:
-                callbacks.rtc_error();
+                callbacks.rtc_error_cb();
                 break;
                 case RC.EC_ALARM:
-                callbacks.alarm();
+                callbacks.alarm_cb();
                 break;
             }
 
@@ -151,42 +161,6 @@ class JRadicom {
         return rcstatus_t.RC_OK;
     }
 
-    class RadAppCB implements RCCallbacks {
-        public void gps_error()
-        {
-
-        }
-        public void rtc_error()
-        {
-
-        }
-        public void alarm()
-        {
-            System.out.println("ALARM!!");
-        }
-
-        public void read_r_cb(fraddata fdata)
-        {
-            System.out.println("Read r cb, radiation = " + Integer.toString(fdata.radiation));
-        }
-    }
-
-    int count = 666;
-    private native void print(int x);
-
-    public static void main(String args[]) {
-        JRadicom jradicom = new JRadicom();
-        RadAppCB radappcb = jradicom.new RadAppCB();
-        jradicom.print(5);
-        System.out.println("Stuff got from C: " + Integer.toString(jradicom.count));
-        System.out.println("Now get an array from C!");
-        int[] array = jradicom.q_read();
-        for (int i = 0; i < 100; i++)
-        {
-            System.out.println(Integer.toString(array[i]));
-        }
-        jradicom.decode(array, radappcb);
-    }
     static {
         System.loadLibrary("CRadicom");
     }
