@@ -1,6 +1,10 @@
 #ifndef _CALLBACKS_H
 #define _CALLBACKS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 #include "radicom.h"
 
 /* null param = null will be passed*/
@@ -27,6 +31,8 @@ rcstatus_t rc_setdt_q_cb (unsigned char* frame, void* dtbuffer);
 */
 rcstatus_t rc_setdt_r_cb (unsigned char* frame, void* ec);
 
-
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* _CALLBACKS_H */

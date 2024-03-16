@@ -1,6 +1,10 @@
 #ifndef _RADICOM_H
 #define _RADICOM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* sizes in bytes */
 enum RC_FRAME {
     RC_FRAME_SIZE = 100,
@@ -165,5 +169,9 @@ rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec);
 /* receive functions */
 rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param));
 rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* _RADICOM_H */

@@ -1,7 +1,7 @@
 #include <jni.h>
-#include <stdio.h>
-#include "jradicom_JRadicom.h"
 #include "radicom.h"
+#include "CRadicom.h"
+#include "jradicom_JRadicom.h"
 
 unsigned char frame[RC_FRAME_SIZE] = {0};
 
@@ -12,7 +12,7 @@ const char* current_gpsreadout = "000000000000000$GPRMC,030742.00,A,2232.73830,N
 rcdt_t current_datetime = {109, 12, 54, 17, 16};
 unsigned int current_radiation = 15000;
 
-JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_read_1header (JNIEnv *env, jobject obj, jintArray array)
+jintArray read_hdr (JNIEnv* env, jobject obj, jintArray array)
 {
     jintArray jhdr = (*env)->NewIntArray(env, JHDR_LEN);
     jsize len = (*env)->GetArrayLength(env, array);
@@ -43,7 +43,7 @@ JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_read_1header (JNIEnv *env, jo
     return jhdr;
 }
 
-JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_q_1read (JNIEnv *env, jobject obj)
+jintArray q_read (JNIEnv* env, jobject obj)
 {
     jintArray jframe = (*env)->NewIntArray(env, RC_FRAME_SIZE);
     int cframe[RC_FRAME_SIZE] = {0};
@@ -56,7 +56,7 @@ JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_q_1read (JNIEnv *env, jobject
     return jframe;
 }
 
-JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_r_1read (JNIEnv *env, jobject obj) 
+jintArray r_read(JNIEnv *env, jobject obj)
 {
     jintArray jframe = (*env)->NewIntArray(env, RC_FRAME_SIZE);
     int cframe[RC_FRAME_SIZE] = {0};
@@ -69,7 +69,7 @@ JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_r_1read (JNIEnv *env, jobject
     return jframe;
 }
 
-JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_process_1read (JNIEnv *env, jobject obj, jintArray array)
+jintArray process_read(JNIEnv *env, jobject obj, jintArray array)
 {
     jintArray jframe = (*env)->NewIntArray(env, RC_FRAME_SIZE);
     jsize len = (*env)->GetArrayLength(env, array);
@@ -109,4 +109,25 @@ JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_process_1read (JNIEnv *env, j
 
     Java_JRadicom_process_1read_finish:
     return jframe;
+}
+
+/* functions created by JNI are only wrappers for internal functions as their names depend on package name etc*/
+JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_read_1header (JNIEnv *env, jobject obj, jintArray array)
+{
+    return read_hdr(env, obj, array);
+}
+
+JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_q_1read (JNIEnv *env, jobject obj)
+{
+    return q_read(env, obj);
+}
+
+JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_r_1read (JNIEnv *env, jobject obj)
+{
+    return r_read(env, obj);
+}
+
+JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_process_1read (JNIEnv *env, jobject obj, jintArray array)
+{
+    return process_read(env, obj, array);
 }
