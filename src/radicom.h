@@ -171,7 +171,7 @@ rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[
 rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata);
 
 #ifdef __cplusplus
-}
+};
 #endif /* __cplusplus */
 
 #endif /* _RADICOM_H */

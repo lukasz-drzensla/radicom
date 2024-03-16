@@ -32,7 +32,7 @@ rcstatus_t rc_setdt_q_cb (unsigned char* frame, void* dtbuffer);
 rcstatus_t rc_setdt_r_cb (unsigned char* frame, void* ec);
 
 #ifdef __cplusplus
-}
+};
 #endif /* __cplusplus */
 
 #endif /* _CALLBACKS_H */

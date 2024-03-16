@@ -191,6 +191,6 @@ public class JRadicom implements JRadIF {
     }
 
     static {
-        System.loadLibrary("CRadicom");
+        System.loadLibrary("JCRadicom");
     }
 }
