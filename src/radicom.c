@@ -1,6 +1,10 @@
 #include "radicom.h"
 #include <stddef.h>
 
+/* helper functions */
+unsigned char rc_uc_pow (unsigned char base, unsigned char exp);
+rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+
 void rc_set_datetime (rcdt_t* datetime_dst, unsigned char day, unsigned char month, unsigned short year, unsigned char hours, unsigned char minutes, unsigned char seconds)
 {
     (*datetime_dst)[0] = (unsigned char)((day & 0x1F) << 3);
@@ -140,7 +144,6 @@ rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int
     return RC_OK;
 }
 
-rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
 rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
 {
     for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN; i++)

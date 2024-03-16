@@ -79,9 +79,6 @@ typedef unsigned char rcdt_t [RC_DATETIME_SIZE];
 void rc_set_datetime (rcdt_t* datetime_dst, unsigned char day, unsigned char month, unsigned short year, unsigned char hours, unsigned char minutes, unsigned char seconds);
 void rc_get_datetime (rcdt_t* datetime_src, unsigned char* day, unsigned char* month, unsigned short* year, unsigned char* hours, unsigned char* minutes, unsigned char* seconds);
 
-/* helper power function */
-unsigned char rc_uc_pow (unsigned char base, unsigned char exp);
-
 /* header manipulation functions */
 rcstatus_t rc_fill_header (unsigned char* frame, unsigned char qr, unsigned char more, unsigned char fc, unsigned char ec);
 rcstatus_t rc_put_header (unsigned char* frame, const rchdr_t* hdr);
