@@ -1,3 +1,5 @@
-build
-build/*
+out
+out/*
+lib
+lib/*
 .vscode/
