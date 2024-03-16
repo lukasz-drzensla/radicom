@@ -1,16 +1,17 @@
 package example;
-import jradicom.*;
+import jradicom.JRadicom;
 
-class RadAppCB implements jradicom.JRadicom.RCCallbacks {
+/* callbacks implementing application-specific functions */
+class RadAppCB implements JRadicom.RCCallbacks {
 
     public void gps_error_cb()
     {
-
+        System.out.println("GPS ERROR!!");
     }
 
     public void rtc_error_cb()
     {
-
+        System.out.println("RTC ERROR!!");
     }
 
     public void alarm_cb()
@@ -39,7 +40,7 @@ class Main {
         int[] frame = jradicom.rc_q_read(); //send query
         //some send function
         //some wait for response
-        frame = jradicom.r_read(); //for testing - reply to ourselves
+        frame = jradicom.rc_r_read(); //for testing - reply to ourselves
 
         // for (int i = 0; i < 100; i++)
         // {

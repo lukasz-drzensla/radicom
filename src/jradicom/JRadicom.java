@@ -1,6 +1,15 @@
 package jradicom;
 
-public class JRadicom {
+interface JRadIF {
+    public int[] rc_q_read();
+    public int[] rc_r_read();
+    public int[] rc_q_memread();
+    public int[] rc_q_setdt(int day, int month, int year, int hours, int minutes, int seconds);
+    public int[] rc_q_calibrate(int ext0, int ext1, int meas0, int meas1);
+    public JRadicom.rcstatus_t decode(int[] frame, JRadicom.RCCallbacks callbacks);
+}
+
+public class JRadicom implements JRadIF {
 
     public interface RCCallbacks {
         public void gps_error_cb();
@@ -52,17 +61,12 @@ public class JRadicom {
 
     //Functions for sending queries
     private native int[] q_read();
-    public native int[] q_memread();
-    public native int[] q_setdt(int day, int month, int year, int hours, int minutes, int seconds);
-    public native int[] q_calibrate(int ext0, int ext1, int meas0, int meas1);
+    private native int[] q_memread();
+    private native int[] q_setdt(int day, int month, int year, int hours, int minutes, int seconds);
+    private native int[] q_calibrate(int ext0, int ext1, int meas0, int meas1);
 
     //Functions for sending responses - useful for tests
-    public native int[] r_read();
-
-    public int[] rc_q_read() 
-    {
-        return q_read();
-    }
+    private native int[] r_read();   
 
     /* Function for decoding header
      * Returns an array of integers of len JHDR_LEN = 4. Meaning of indexes:
@@ -93,7 +97,6 @@ public class JRadicom {
         hdr.ec = chdr[3];
         return hdr;
     }
-
     private rcfdataupck_t rc_process_read(int[] frame)
     {
         rcfdataupck_t tfulldata = new rcfdataupck_t();
@@ -121,6 +124,7 @@ public class JRadicom {
         return tfulldata;
     }
 
+    /* Interface implementation */
     public rcstatus_t decode(int[] frame, RCCallbacks callbacks)
     {
         rchdr_t hdr = rc_read_header(frame);
@@ -159,6 +163,31 @@ public class JRadicom {
         }
         
         return rcstatus_t.RC_OK;
+    }
+
+    public int[] rc_q_read() 
+    {
+        return q_read();
+    }
+
+    public int[] rc_r_read() 
+    {
+        return r_read();
+    }
+
+    public int[] rc_q_memread()
+    {
+        return q_memread();
+    }
+
+    public int[] rc_q_setdt(int day, int month, int year, int hours, int minutes, int seconds)
+    {
+        return q_setdt(day, month, year, hours, minutes, seconds);
+    }
+    
+    public int[] rc_q_calibrate(int ext0, int ext1, int meas0, int meas1)
+    {
+        return q_calibrate(ext0, ext1, meas0, meas1);
     }
 
     static {

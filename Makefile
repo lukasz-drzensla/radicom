@@ -17,15 +17,16 @@ SRC_DIR = src
 BUILD_DIR = out
 LIB_DIR = lib
 
-#main objects, main.o to be moved
-OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/radicom.o
-LIB_OBJS = $(LIB_DIR)/libCRadicom.so
+#main RLIB_OBJS
+CEXAMPLE_OBJ = $(BUILD_DIR)/main.o
+RLIB_OBJS = $(BUILD_DIR)/radicom.o
+JNI_LIB_OBJS = $(LIB_DIR)/libCRadicom.so
 
 APP_OPT = -DDBG
 
 INCLUDE = -I$(SRC_DIR) -I$(SRC_DIR)/jradicom
 
-default: $(BUILD_DIR) $(APP) $(LIB_DIR) $(LIB_OBJS)
+default: $(BUILD_DIR) $(RLIB) $(RLIB_OBJS) $(LIB_DIR) $(JNI_LIB_OBJS) $(CEXAMPLE_OBJ) $(APP)
 
 $(BUILD_DIR):
 	@mkdir $(BUILD_DIR)
@@ -33,15 +34,20 @@ $(BUILD_DIR):
 $(LIB_DIR):
 	@mkdir $(LIB_DIR)
 
-$(OBJECTS):$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+$(RLIB_OBJS):$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) -c $< -o $@
 
-$(APP): $(OBJECTS)
-	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) $(OBJECTS) -o $@
+$(CEXAMPLE_OBJ):$(BUILD_DIR)/%.o: $(SRC_DIR)/example/%.c
+	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) -c $< -o $@
 
-#TODO: replace $(BUILD_DIR)/radicom.o with $(OBJECTS) when main.o moved
-$(LIB_OBJS):$(LIB_DIR)/lib%.so: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(JNI_FLAGS) $(INCLUDE) $< -o $@ $(BUILD_DIR)/radicom.o
+$(RLIB): $(RLIB_OBJS)
+	$(CC) $(CFLAGS) $(INCLUDE) $(APP_OPT) $(RLIB_OBJS) -o $@
+
+$(JNI_LIB_OBJS):$(LIB_DIR)/lib%.so: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(JNI_FLAGS) $(INCLUDE) $< -o $@ $(RLIB_OBJS)
+
+$(APP):$(CEXAMPLE_OBJ)
+	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@ $(RLIB_OBJS)
 
 clean:
 	rm -rf $(BUILD_DIR)/*.o
