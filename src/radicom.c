@@ -188,6 +188,31 @@ rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec)
     return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec);
 }
 
+rcstatus_t rc_process_read (unsigned char* frame, fraddata* fdata)
+{
+    for (int i = RC_HEADER_SIZE; i < RC_GPS_DATALEN + RC_HEADER_SIZE; i++)
+    {
+        fdata->gpsdata[i-RC_HEADER_SIZE] = frame[i];
+    }
+
+    rcdt_t dt;
+    /* Process date and time */
+    for (int i = 0; i < RC_DATETIME_SIZE; i++)
+    {
+        dt[i] = ((unsigned char*)frame)[i + RC_GPS_DATALEN + RC_HEADER_SIZE];
+    }
+    rc_get_datetime(&dt, &fdata->day, &fdata->month, &fdata->year, &fdata->hours, &fdata->minutes, &fdata->seconds);
+    
+
+    fdata->radiation = 0;
+
+    for (int i = RC_GPS_DATALEN + RC_HEADER_SIZE+ RC_DATETIME_SIZE; i < RC_GPS_DATALEN + RC_HEADER_SIZE + RC_DATETIME_SIZE + sizeof(unsigned int); i++)
+    {
+        fdata->radiation |= frame[i] << (8*(i - (RC_GPS_DATALEN + RC_HEADER_SIZE+ RC_DATETIME_SIZE)));
+    }
+    return RC_OK;
+}
+
 rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param))
 {
     rcstatus_t res = rc_read_header(frame, hdr);
@@ -232,6 +257,11 @@ rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[
             {
                 if (NULL != callbacks[RC_CB_READ_Q])
                     res = (*callbacks[RC_CB_READ_Q])(frame, NULL);
+                else
+                    res = RC_ERR_NULL_CB;
+            } else if (RC_R == hdr->qr) {
+                if (NULL != callbacks[RC_CB_READ_R])
+                    res = (*callbacks[RC_CB_READ_R])(frame, NULL);
                 else
                     res = RC_ERR_NULL_CB;
             }

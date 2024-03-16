@@ -12,6 +12,8 @@ rcstatus_t rc_rtc_error_cb (unsigned char* frame, void* null_param);
 rcstatus_t rc_alarm_cb (unsigned char* frame, void* null_param);
 /* RC_CB_READ_Q */
 rcstatus_t rc_read_q_cb (unsigned char* frame, void* null_param);
+/* RC_CB_READ_R */
+rcstatus_t rc_read_r_cb (unsigned char* frame, void* null_param);
 /* RC_CB_MEMREAD_Q */
 rcstatus_t rc_memread_q_cb (unsigned char* frame, void* null_param);
 /* RC_CB_SETDT_Q */

@@ -60,6 +60,7 @@ enum RC_CALLBACKS {
     RC_CB_RTC_ERR,
     RC_CB_ALARM,
     RC_CB_READ_Q,
+    RC_CB_READ_R,
     RC_CB_MEMREAD_Q,
     RC_CB_SETDT_Q,
     RC_CB_SETDT_R,
@@ -72,6 +73,17 @@ typedef struct {
     unsigned char fc;
     unsigned char ec;
 } rchdr_t;
+
+typedef struct {
+    unsigned char gpsdata[RC_GPS_DATALEN];
+    unsigned char day;
+    unsigned char month;
+    unsigned short year;
+    unsigned char hours;
+    unsigned char minutes;
+    unsigned char seconds;
+    unsigned int radiation;
+} fraddata;
 
 typedef unsigned char rcdt_t [RC_DATETIME_SIZE];
 
@@ -152,5 +164,6 @@ rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec);
 
 /* receive functions */
 rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param));
+rcstatus_t rc_process_read (unsigned char* frame, fraddata* fdata);
 
 #endif /* _RADICOM_H */

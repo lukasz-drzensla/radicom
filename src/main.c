@@ -70,7 +70,7 @@ int main()
     // printf("\n");
 
     rcstatus_t result;
-    //result = rc_q_read(frame);
+    result = rc_q_read(frame);
 
     rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param) = {NULL};
     callbacks[RC_CB_GPS_ERR] = rc_gps_error_cb;
@@ -80,6 +80,7 @@ int main()
     callbacks[RC_CB_MEMREAD_Q] = rc_memread_q_cb;
     callbacks[RC_CB_SETDT_Q] = rc_setdt_q_cb;
     callbacks[RC_CB_SETDT_R] = rc_setdt_r_cb;
+    callbacks[RC_CB_READ_R] = rc_read_r_cb;
     rchdr_t hdr;
     while (1)
     {
@@ -153,4 +154,20 @@ rcstatus_t rc_setdt_r_cb (unsigned char* frame, void* ec)
     printf("Error code: %d\n", *((unsigned char*)ec));
     rc_clear_frame(frame);
     return RC_OK;
+}
+
+rcstatus_t rc_read_r_cb (unsigned char* frame, void* null_param)
+{
+    printf("read r cb\n");
+    fraddata tfulldata;
+
+    rcstatus_t res = rc_process_read(frame, &tfulldata);
+
+    printf("GPSdata: %s\n", (char*)tfulldata.gpsdata);
+    printf("%d %d %d %d %d %d\n", tfulldata.day, tfulldata.month, tfulldata.year, tfulldata.hours, tfulldata.minutes, tfulldata.seconds);
+    printf("Current radiation: %d\n", tfulldata.radiation);
+    
+    rc_clear_frame(frame);
+    
+    return res;
 }
