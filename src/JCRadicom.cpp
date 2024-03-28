@@ -22,3 +22,8 @@ JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_process_1read (JNIEnv *env, j
 {
     return process_read(env, obj, array);
 }
+
+JNIEXPORT jintArray JNICALL Java_jradicom_JRadicom_q_1memread (JNIEnv *env, jobject obj)
+{
+    return q_memread(env, obj);
+}

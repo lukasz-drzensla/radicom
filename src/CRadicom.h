@@ -9,6 +9,7 @@ extern "C" {
 
 jintArray read_hdr (JNIEnv* env, jobject obj, jintArray array);
 jintArray q_read (JNIEnv* env, jobject obj);
+jintArray q_memread (JNIEnv* env, jobject obj);
 jintArray r_read(JNIEnv *env, jobject obj);
 jintArray process_read(JNIEnv *env, jobject obj, jintArray array);
 
