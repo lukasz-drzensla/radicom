@@ -105,10 +105,10 @@ rcstatus_t rc_q_setdt (unsigned char* frame, rcdt_t* datetime)
     {
         return res;
     }
-    int j = 0;
-    for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_DATETIME_SIZE; i++)
+    
+    for (int i = RC_HEADER_SIZE, j = 0; i < RC_HEADER_SIZE + RC_DATETIME_SIZE; i++, j++)
     {
-        frame[i] = (*datetime)[j++];
+        frame[i] = (*datetime)[j];
     }
     return RC_OK;
 }

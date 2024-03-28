@@ -1,0 +1,50 @@
+Radicom - request/response protocol for communication between an embedded dosimeter and a smartphone
+
+    Status of this Memo
+This memo defines the Radicom protocol for the purpose of a project for Sensors in Embedded Applications laboratory at AGH University.
+
+    Copyright Notice
+Copyright (C) Łukasz Drzensla (2024).
+
+    Overview and rational
+Radicom (RADIation COMmunication) is a 7-th layer protocol suited for communication between an embedded dosimeter and a smartphone. Other uses may apply. The protocol is suited for a server-client application. Client connects to the server and sends queries (requests) to obtain responses (carrying certain information) or to cause a desired bahaviour (also followed by a response). The protocol defines four main functions: read current measurement, read memory contents, set date and time, calibrate device. Each functions is either a query or a response.
+
+Communication is initiated by the client. The client sends a query and then switches to waiting for response. A single query may be followed by multiple responses.
+
+Each frame has a fixed length of 100 bytes. A frame (either query or response) has a structure as shown:
+
++-----------------+-----------------------------+
+| header (2 bytes)|         data (98 bytes)     |
++-----------------+-----------------------------+
+
+The header has the following structure:
+
++-------------------------+-------------+--------------+-------------+-------------+
+| start sequence (1 byte) | Q/R (1 bit) | MORE (1 bit) | FC (4 bits) | EC (2 bits) |
++-------------------------+-------------+--------------+-------------+-------------+
+
+start sequence - 0xDB
+Q/R - bit indicating whether the frame is a query (0) or a response (1)
+MORE - bit relevant only in responses: 0 = this is the last response frame, 1 = there will be more response frames
+FC - function code: read current measurement (0), read memory contents (1), set date and time (2), calibrate device (3). Left some space for future development of the protocol.
+EC - error code: OK (0), GPS error (1), RTC error (2), radiation level alarm (3)
+
+Data field in query frames may be empty for functions 0 and 1. Empty data field in response frames for functions 2 and 3 indicate ACK (or NACK if appropriate EC set in header).
+
+Data field in resonse frame for FC 0 or 1 shall have the following structure:
+
++---------------------+-------------------------+---------------------------------+--------------------+
+| GPS data (80 bytes) | date and time (5 bytes) | radiation measurement (4 bytes) | reserved (9 bytes) |
++---------------------+-------------------------+---------------------------------+--------------------+
+
+Where:
+GPS data - left zero-padded GPS info in RMC/RMB format
+Date and time - DD (5 bits) MM (4 bits) YYY (8 bits) hh (5 bits) mm (6 bits) ss (6 bits), where YYY = current year - 2000
+
+Example dataflow
+
+client                                              server
+   |----------[query read current measurement]-------->|
+   |                                                   |
+   |<---------[responde read current measurement]------|
+   |                                                   |
