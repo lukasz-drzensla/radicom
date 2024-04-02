@@ -26,7 +26,7 @@ The header has the following structure:
 start sequence - 0xDB
 Q/R - bit indicating whether the frame is a query (0) or a response (1)
 MORE - bit relevant only in responses: 0 = this is the last response frame, 1 = there will be more response frames
-FC - function code: read current measurement (0), read memory contents (1), set date and time (2), calibrate device (3). Left some space for future development of the protocol.
+FC - function code: read current measurement (0), read memory contents (1), set date and time (2), calibrate device (3), save measurement (4). Left some space for future development of the protocol.
 EC - error code: OK (0), GPS error (1), RTC error (2), radiation level alarm (3)
 
 Data field in query frames may be empty for functions 0 and 1. Empty data field in response frames for functions 2 and 3 indicate ACK (or NACK if appropriate EC set in header).
@@ -48,3 +48,8 @@ client                                              server
    |                                                   |
    |<---------[responde read current measurement]------|
    |                                                   |
+
+
+FC elaboration
+
+4 - save measurement in the dosimeter memory. The query shall be sent by client to the server. It shall contain the measurement just like FC(0) response for the purpose of synchronisation. It is assumed that the client sends back the last received measurement. Server responds with an ACK (empty data field). This FC is used when triggering save from application and NOT from the dosimeter.
