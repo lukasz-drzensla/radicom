@@ -81,6 +81,7 @@ int main()
     callbacks[RC_CB_SETDT_Q] = rc_setdt_q_cb;
     callbacks[RC_CB_SETDT_R] = rc_setdt_r_cb;
     callbacks[RC_CB_READ_R] = rc_read_r_cb;
+    callbacks[RC_CB_SAVE_Q] = rc_save_q_cb;
     rchdr_t hdr;
     while (1)
     {
@@ -170,4 +171,34 @@ rcstatus_t rc_read_r_cb (unsigned char* frame, void* null_param)
     rc_clear_frame(frame);
     
     return res;
+}
+
+rcstatus_t rc_save_q_cb (unsigned char* frame, void* ec)
+{
+    printf("save q cb\n");
+    rcfdataupck_t tfulldata;
+
+    rcstatus_t res = rc_process_read(frame, &tfulldata);
+
+    if (RC_OK != res)
+    {
+        /* log error */
+        return res;
+    }
+
+    /* save the received data instead of printing it */
+    printf("GPSdata: %s\n", (char*)tfulldata.gpsdata);
+    printf("%d %d %d %d %d %d\n", tfulldata.day, tfulldata.month, tfulldata.year, tfulldata.hours, tfulldata.minutes, tfulldata.seconds);
+    printf("Current radiation: %d\n", tfulldata.radiation);
+    
+    rc_clear_frame(frame);
+
+    return rc_r_save(frame, RC_EC_OK);
+}
+
+rcstatus_t rc_save_r_cb (unsigned char* frame, void* ec)
+{
+    printf("save r cb\n");
+
+    return RC_OK;
 }

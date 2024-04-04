@@ -30,7 +30,10 @@ APP_OPT = -DDBG
 
 INCLUDE = -I$(SRC_DIR) -I$(SRC_DIR)/jradicom
 
-default: $(BUILD_DIR) $(RLIB) $(RLIB_OBJS) $(CJNI_OBJS) $(LIB_DIR) $(JNI_LIB_OBJS) $(CEXAMPLE_OBJ) $(APP)
+default: library jni
+library: $(BUILD_DIR) $(RLIB) $(RLIB_OBJS)
+example: library $(CEXAMPLE_OBJ) $(APP)
+jni: $(CJNI_OBJS) $(LIB_DIR) $(JNI_LIB_OBJS)
 
 $(BUILD_DIR):
 	@mkdir $(BUILD_DIR)

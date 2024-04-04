@@ -38,7 +38,8 @@ enum RC_FC {
     RC_FC_READ = 0,
     RC_FC_MEM_READ = 1,
     RC_FC_SET_DATE_TIME = 2,
-    RC_FC_CALIBRATION = 3
+    RC_FC_CALIBRATION = 3,
+    RC_FC_SAVE = 4
 };
 enum RC_EC {
     RC_EC_OK = 0,
@@ -68,6 +69,8 @@ enum RC_CALLBACKS {
     RC_CB_MEMREAD_Q,
     RC_CB_SETDT_Q,
     RC_CB_SETDT_R,
+    RC_CB_SAVE_Q,
+    RC_CB_SAVE_R,
     RC_NUMO_CB
 };
 
@@ -131,6 +134,16 @@ rcstatus_t rc_q_setdt (unsigned char* frame, rcdt_t* datetime);
  * @param meas1 second measurement from calibrated device corresponding to second external measurement
 */
 rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int ext1, unsigned int meas0, unsigned int meas1);
+/**
+ * @brief Fill the frame with query to save a measurement.
+ * @param frame buffer
+ * @param gpsdata left-zero-padded buffer with length of RC_GPS_DATALEN
+ * @param datetime date and time of the readout
+ * @param radiation readout from the radiation sensor
+ * @param ec error code
+ * @return rcstatus_t RC_OK on success, error otherwise
+*/
+rcstatus_t rc_q_save (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
 /* ------------------------------------------------------ */
 
 
@@ -164,6 +177,12 @@ rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t
  * @param ec error code
 */
 rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec);
+/**
+ * @brief Fill the frame with response for requesting saving a readout.
+ * @param frame buffer
+ * @param ec error code
+*/
+rcstatus_t rc_r_save (unsigned char* frame, unsigned char ec);
 /* ------------------------------------------------------ */
 
 /* receive functions */

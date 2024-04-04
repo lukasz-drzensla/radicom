@@ -2,8 +2,8 @@
 #include <stddef.h>
 
 /* helper functions */
-unsigned char rc_uc_pow (unsigned char base, unsigned char exp);
-rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+unsigned char _rc_uc_pow (unsigned char base, unsigned char exp);
+rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation);
 
 void rc_set_datetime (rcdt_t* datetime_dst, unsigned char day, unsigned char month, unsigned short year, unsigned char hours, unsigned char minutes, unsigned char seconds)
 {
@@ -34,7 +34,7 @@ void rc_get_datetime (rcdt_t* datetime_src, unsigned char* day, unsigned char* m
     *seconds |= ((*datetime_src)[4] &0xF0) >> 4;
 }
 
-unsigned char rc_uc_pow (unsigned char base, unsigned char exp)
+unsigned char _rc_uc_pow (unsigned char base, unsigned char exp)
 {
     unsigned char result = 1;
     while (exp)
@@ -52,7 +52,7 @@ unsigned char rc_uc_pow (unsigned char base, unsigned char exp)
 rcstatus_t rc_fill_header (unsigned char* frame, unsigned char qr, unsigned char more, unsigned char fc, unsigned char ec)
 {
     /* parameter checking */
-    if ((qr > rc_uc_pow(2, RC_HDR_QR_SIZE) - 1) || (more > rc_uc_pow(2, RC_HDR_MORE_SIZE) - 1) || fc > (rc_uc_pow(2, RC_HDR_FC_SIZE) - 1) || (ec > rc_uc_pow(2, RC_HDR_EC_SIZE) - 1)) {
+    if ((qr > _rc_uc_pow(2, RC_HDR_QR_SIZE) - 1) || (more > _rc_uc_pow(2, RC_HDR_MORE_SIZE) - 1) || fc > (_rc_uc_pow(2, RC_HDR_FC_SIZE) - 1) || (ec > _rc_uc_pow(2, RC_HDR_EC_SIZE) - 1)) {
         return RC_ERROR_PARAM;
     }
 
@@ -75,8 +75,8 @@ rcstatus_t rc_read_header (const unsigned char* frame, rchdr_t* hdr)
     }
     hdr->qr = (frame[1] & (1 << RC_HDR_QR_POS)) == 0 ? RC_Q : RC_R;
     hdr->more = (frame[1] & (1 << RC_HDR_MORE_POS)) == 0 ? RC_NO_MORE : RC_MORE;
-    hdr->fc = (frame[1] & (rc_uc_pow(2, RC_HDR_FC_SIZE) - 1) << RC_HDR_FC_POS) >> RC_HDR_FC_POS;
-    hdr->ec = frame[1] & (rc_uc_pow(2, RC_HDR_EC_SIZE) - 1);
+    hdr->fc = (frame[1] & (_rc_uc_pow(2, RC_HDR_FC_SIZE) - 1) << RC_HDR_FC_POS) >> RC_HDR_FC_POS;
+    hdr->ec = frame[1] & (_rc_uc_pow(2, RC_HDR_EC_SIZE) - 1);
     return RC_OK;
 }
 
@@ -144,7 +144,17 @@ rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int
     return RC_OK;
 }
 
-rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+rcstatus_t rc_q_save (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+{
+    rcstatus_t res = rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_SAVE, ec);
+    if (RC_OK != res)
+    {
+        return res;
+    }
+    return _frame_r_read(frame, gpsdata, datetime, radiation);
+}
+
+rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation)
 {
     for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN; i++)
     {
@@ -160,6 +170,7 @@ rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_
     {
         frame[i] = (radiation & 0xFF << (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)))) >> (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)));
     }
+    /* TODO: do some error checking, a function returning a non-void type should NEVER return a hardcoded OK */
     return RC_OK;
 }
 
@@ -170,7 +181,7 @@ rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* d
     {
         return res;
     }
-    return _frame_r_read(frame, gpsdata, datetime, radiation, ec);
+    return _frame_r_read(frame, gpsdata, datetime, radiation);
 }
 
 rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last)
@@ -180,12 +191,17 @@ rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t
     {
         return res;
     }
-    return _frame_r_read(frame, gpsdata, datetime, radiation, ec);
+    return _frame_r_read(frame, gpsdata, datetime, radiation);
 }
 
 rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec)
 {
     return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec);
+}
+
+rcstatus_t rc_r_save (unsigned char* frame, unsigned char ec)
+{
+    return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SAVE, ec);
 }
 
 rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata)
@@ -249,6 +265,7 @@ rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[
         break;
     }
 
+    /* Received function code handling */
     switch (hdr->fc)
     {
         case RC_FC_READ:
@@ -290,6 +307,23 @@ rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[
             {
                 if (NULL != callbacks[RC_CB_SETDT_R])
                     res = (*callbacks[RC_CB_SETDT_R])(frame, (frame+RC_HEADER_SIZE));
+                else
+                    res = RC_ERR_NULL_CB;
+            }
+            break;
+        }
+        case RC_FC_SAVE:
+        {
+            if (RC_Q == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_SAVE_Q])
+                    res = (*callbacks[RC_CB_SAVE_Q])(frame, NULL);
+                else
+                    res = RC_ERR_NULL_CB;
+            } else if (RC_R == hdr->qr)
+            {
+                if (NULL != callbacks[RC_CB_SAVE_R])
+                    res = (*callbacks[RC_CB_SAVE_R])(frame, NULL);
                 else
                     res = RC_ERR_NULL_CB;
             }

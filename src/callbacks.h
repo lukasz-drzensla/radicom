@@ -30,6 +30,17 @@ rcstatus_t rc_setdt_q_cb (unsigned char* frame, void* dtbuffer);
  * @param ec Pointer to an unsigned char in which error code is stored.
 */
 rcstatus_t rc_setdt_r_cb (unsigned char* frame, void* ec);
+/* RC_CB_SAVE_Q */
+/**
+ * @param ec Pointer to an unsigned char in which error code is stored.
+*/
+rcstatus_t rc_save_q_cb (unsigned char* frame, void* ec);
+/* RC_CB_SAVE_R */
+/**
+ * @param ec Pointer to an unsigned char in which error code is stored.
+*/
+rcstatus_t rc_save_r_cb (unsigned char* frame, void* ec);
+
 
 #ifdef __cplusplus
 };
