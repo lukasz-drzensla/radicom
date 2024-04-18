@@ -1,6 +1,10 @@
 #include "radicom.h"
 #include "CRadicom.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 unsigned char frame[RC_FRAME_SIZE] = {0};
 
 #define JHDR_LEN 4
@@ -121,3 +125,7 @@ jintArray process_read(JNIEnv *env, jobject obj, jintArray array)
     Java_JRadicom_process_1read_finish:
     return jframe;
 }
+
+#ifdef __cplusplus
+};
+#endif /* __cplusplus */

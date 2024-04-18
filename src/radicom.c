@@ -1,9 +1,19 @@
 #include "radicom.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+#define RC_INIT_CRC 0xFFFF
+#define RC_POLY 0xA001
+
 /* helper functions */
 unsigned char _rc_uc_pow (unsigned char base, unsigned char exp);
 rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation);
+rcstatus_t _rc_calc_crc (unsigned char* frame, size_t frame_size);
+rcstatus_t _rc_validate_crc (const unsigned char* frame, size_t frame_size);
+unsigned short _crc16 (const unsigned char* buffer, unsigned char len);
 
 void rc_set_datetime (rcdt_t* datetime_dst, unsigned char day, unsigned char month, unsigned short year, unsigned char hours, unsigned char minutes, unsigned char seconds)
 {
@@ -49,6 +59,46 @@ unsigned char _rc_uc_pow (unsigned char base, unsigned char exp)
     return result;
 }
 
+unsigned short _crc16 (const unsigned char* buffer, unsigned char len)
+{
+    unsigned short crc = RC_INIT_CRC;
+    for (unsigned char j = 0; j < len; j++)
+    {
+        crc ^= buffer[j];
+        for (unsigned char i = 0; i < 8; i++)
+        {
+            if (crc & 0x0001)
+            {
+                crc >>= 1; 
+                crc ^= RC_POLY;
+            } 
+            else 
+            { 
+                crc >>= 1;
+            }
+        }
+    }
+    return crc;
+}
+
+rcstatus_t _rc_calc_crc (unsigned char* frame, size_t frame_size)
+{
+    unsigned short crc = _crc16(frame, frame_size - 2) ;
+    frame[frame_size - 1] = crc & 0xFF;
+    frame[frame_size - 2] = (crc & 0xFF00) >> 8;
+
+    return RC_OK;
+}
+
+rcstatus_t _rc_validate_crc (const unsigned char* frame, size_t frame_size)
+{
+    if (_crc16(frame, frame_size-2) == (unsigned short)(frame[frame_size-1] | frame[frame_size-2] << 8))
+    {
+        return RC_OK;
+    }
+    return RC_ERR_BAD_CRC;
+}
+
 rcstatus_t rc_fill_header (unsigned char* frame, unsigned char qr, unsigned char more, unsigned char fc, unsigned char ec)
 {
     /* parameter checking */
@@ -90,12 +140,20 @@ void rc_clear_frame(unsigned char* frame)
 
 inline rcstatus_t rc_q_read (unsigned char* frame)
 {
-    return rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_READ, RC_EC_OK);
+    if (RC_OK == rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_READ, RC_EC_OK))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
 inline rcstatus_t rc_q_memread (unsigned char* frame)
 {
-    return rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_MEM_READ, RC_EC_OK);
+    if (RC_OK == rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_MEM_READ, RC_EC_OK))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
 rcstatus_t rc_q_setdt (unsigned char* frame, rcdt_t* datetime)
@@ -110,7 +168,7 @@ rcstatus_t rc_q_setdt (unsigned char* frame, rcdt_t* datetime)
     {
         frame[i] = (*datetime)[j];
     }
-    return RC_OK;
+    return _rc_calc_crc(frame, RC_FRAME_SIZE);
 }
 
 rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int ext1, unsigned int meas0, unsigned int meas1)
@@ -121,87 +179,107 @@ rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int
         return res;
     }
 
-    for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + sizeof(unsigned int); i++)
+    for (unsigned int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + sizeof(unsigned int); i++)
     {
         frame[i] = (ext0 & (0xFF << 8*(i-RC_HEADER_SIZE))) >> 8 * (i-RC_HEADER_SIZE);
     }
 
-    for (int i = RC_HEADER_SIZE + sizeof(unsigned int); i < RC_HEADER_SIZE + 2*sizeof(unsigned int); i++)
+    for (unsigned int i = RC_HEADER_SIZE + sizeof(unsigned int); i < RC_HEADER_SIZE + 2*sizeof(unsigned int); i++)
     {
         frame[i] = (ext1 & (0xFF << 8*(i-RC_HEADER_SIZE-sizeof(unsigned int)))) >> 8 * (i-RC_HEADER_SIZE-sizeof(unsigned int));
     }
 
-    for (int i = RC_HEADER_SIZE + 2*sizeof(unsigned int); i < RC_HEADER_SIZE + 3*sizeof(unsigned int); i++)
+    for (unsigned int i = RC_HEADER_SIZE + 2*sizeof(unsigned int); i < RC_HEADER_SIZE + 3*sizeof(unsigned int); i++)
     {
         frame[i] = (meas0 & (0xFF << 8*(i-RC_HEADER_SIZE-2*sizeof(unsigned int)))) >> 8 * (i-RC_HEADER_SIZE-2*sizeof(unsigned int));
     }
 
-    for (int i = RC_HEADER_SIZE + 3*sizeof(unsigned int); i < RC_HEADER_SIZE + 4*sizeof(unsigned int); i++)
+    for (unsigned int i = RC_HEADER_SIZE + 3*sizeof(unsigned int); i < RC_HEADER_SIZE + 4*sizeof(unsigned int); i++)
     {
         frame[i] = (meas1 & (0xFF << 8*(i-RC_HEADER_SIZE-3*sizeof(unsigned int)))) >> 8 * (i-RC_HEADER_SIZE-3*sizeof(unsigned int));
     }
 
-    return RC_OK;
+    return _rc_calc_crc(frame, RC_FRAME_SIZE);
 }
 
-rcstatus_t rc_q_save (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+rcstatus_t rc_q_save (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
 {
     rcstatus_t res = rc_fill_header(frame, RC_Q, RC_NO_MORE, RC_FC_SAVE, ec);
     if (RC_OK != res)
     {
         return res;
     }
-    return _frame_r_read(frame, gpsdata, datetime, radiation);
+    if (RC_OK == _frame_r_read(frame, gpsdata, datetime, radiation))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
-rcstatus_t _frame_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation)
+rcstatus_t _frame_r_read (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation)
 {
-    for (int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN; i++)
+    for (unsigned int i = RC_HEADER_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN; i++)
     {
         frame[i] = (unsigned char)gpsdata[i];
     }
 
-    for (int i = RC_HEADER_SIZE + RC_GPS_DATALEN; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i++)
+    for (unsigned int i = RC_HEADER_SIZE + RC_GPS_DATALEN; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i++)
     {
         frame[i] = (*datetime)[i - (RC_HEADER_SIZE + RC_GPS_DATALEN)];
     }
 
-    for (int i = RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE + sizeof(unsigned int); i++)
+    for (unsigned int i = RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE; i < RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE + sizeof(unsigned int); i++)
     {
         frame[i] = (radiation & 0xFF << (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)))) >> (8*(i - (RC_HEADER_SIZE + RC_GPS_DATALEN + RC_DATETIME_SIZE)));
     }
-    /* TODO: do some error checking, a function returning a non-void type should NEVER return a hardcoded OK */
-    return RC_OK;
+    
+    return _rc_calc_crc(frame, RC_FRAME_SIZE);;
 }
 
-rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
+rcstatus_t rc_r_read (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec)
 {
     rcstatus_t res = rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_READ, ec);
     if (RC_OK != res)
     {
         return res;
     }
-    return _frame_r_read(frame, gpsdata, datetime, radiation);
+    if (RC_OK == _frame_r_read(frame, gpsdata, datetime, radiation))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
-rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last)
+rcstatus_t rc_r_memread (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last)
 {
     rcstatus_t res = rc_fill_header(frame, RC_R, !is_last, RC_FC_READ, ec);
     if (RC_OK != res)
     {
         return res;
     }
-    return _frame_r_read(frame, gpsdata, datetime, radiation);
+    if (RC_OK == _frame_r_read(frame, gpsdata, datetime, radiation))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
 rcstatus_t rc_r_setdt (unsigned char* frame, unsigned char ec)
 {
-    return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec);
+    if (RC_OK == rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SET_DATE_TIME, ec))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
 rcstatus_t rc_r_save (unsigned char* frame, unsigned char ec)
 {
-    return rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SAVE, ec);
+    if (RC_OK == rc_fill_header(frame, RC_R, RC_NO_MORE, RC_FC_SAVE, ec))
+    {
+        return _rc_calc_crc(frame, RC_FRAME_SIZE);
+    }
+    return RC_GEN_ERROR;
 }
 
 rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata)
@@ -226,12 +304,19 @@ rcstatus_t rc_process_read (unsigned char* frame, rcfdataupck_t* fdata)
     {
         fdata->radiation |= frame[i] << (8*(i - (RC_GPS_DATALEN + RC_HEADER_SIZE+ RC_DATETIME_SIZE)));
     }
-    return RC_OK;
+    
+    return _rc_calc_crc(frame, RC_FRAME_SIZE);;
 }
 
 rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[RC_NUMO_CB])(unsigned char* frame, void* param))
 {
     rcstatus_t res = rc_read_header(frame, hdr);
+    if (RC_OK != res)
+    {
+        return res;
+    }
+
+    res = _rc_validate_crc(frame, RC_FRAME_SIZE);
     if (RC_OK != res)
     {
         return res;
@@ -333,3 +418,7 @@ rcstatus_t rc_decode (unsigned char* frame, rchdr_t* hdr, rcstatus_t(*callbacks[
 
     return res;
 }
+
+#ifdef __cplusplus
+};
+#endif /* __cplusplus */

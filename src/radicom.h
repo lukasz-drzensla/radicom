@@ -1,7 +1,12 @@
 #ifndef _RADICOM_H
 #define _RADICOM_H
 
-#ifdef __cplusplus
+#define _RADICOM_REV 100
+
+#ifndef __cplusplus
+#define __RESTRICT__ restrict
+#else
+#define __RESTRICT__
 extern "C" {
 #endif /* __cplusplus */
 
@@ -54,7 +59,8 @@ typedef enum {
     RC_GEN_ERROR = 1,
     RC_ERROR_PARAM = 2,
     RC_ERR_BAD_FRAME = 3,
-    RC_ERR_NULL_CB = 4
+    RC_ERR_NULL_CB = 4,
+    RC_ERR_BAD_CRC = 5
 }  rcstatus_t;
 
 /* callbacks */
@@ -143,7 +149,7 @@ rcstatus_t rc_q_calibrate (unsigned char* frame, unsigned int ext0, unsigned int
  * @param ec error code
  * @return rcstatus_t RC_OK on success, error otherwise
 */
-rcstatus_t rc_q_save (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+rcstatus_t rc_q_save (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
 /* ------------------------------------------------------ */
 
 
@@ -159,7 +165,7 @@ rcstatus_t rc_q_save (unsigned char* frame, const char* gpsdata, const rcdt_t* d
  * @param ec error code
  * @return rcstatus_t RC_OK on success, error otherwise
 */
-rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
+rcstatus_t rc_r_read (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec);
 /**
  * @brief Fill the frame with gps, radiation and rtc data stored in memory. This function is meant to be called in a loop.
  * @param frame buffer
@@ -170,7 +176,7 @@ rcstatus_t rc_r_read (unsigned char* frame, const char* gpsdata, const rcdt_t* d
  * @param is_last 0 if the provided data is not the last one in stored memory, 1 if it is
  * @return rcstatus_t RC_OK on success, error otherwise
 */
-rcstatus_t rc_r_memread (unsigned char* frame, const char* gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last);
+rcstatus_t rc_r_memread (unsigned char* __RESTRICT__ frame, const char* __RESTRICT__ gpsdata, const rcdt_t* datetime, unsigned int radiation, unsigned char ec, unsigned char is_last);
 /**
  * @brief Fill the frame with response for setting date and time.
  * @param frame buffer

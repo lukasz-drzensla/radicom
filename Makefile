@@ -8,7 +8,7 @@ APP =
 
 CFLAGS = -g -O0 -Wall -std=c99 -pedantic -Wunused -Wmissing-declarations
 CXXFLAGS = -g -O0 -Wall -std=c++11 -pedantic -Wunused -Wmissing-declarations
-JNI_FLAGS = -shared -I/usr/lib/jvm/java-18-openjdk-amd64/include -I/usr/lib/jvm/java-18-openjdk-amd64/include/linux -fPIC
+JNI_FLAGS = -shared -I/usr/lib/jvm/java-21-openjdk-amd64/include -I/usr/lib/jvm/java-21-openjdk-amd64/include/linux -fPIC
 
 ifeq ($(PLATFORM), linux)
 	CC = gcc

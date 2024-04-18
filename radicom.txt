@@ -13,9 +13,9 @@ Communication is initiated by the client. The client sends a query and then swit
 
 Each frame has a fixed length of 100 bytes. A frame (either query or response) has a structure as shown:
 
-+-----------------+-----------------------------+
-| header (2 bytes)|         data (98 bytes)     |
-+-----------------+-----------------------------+
++-----------------+-----------------------------+-------------------+
+| header (2 bytes)|         data (96 bytes)     |   CRC16 (2 bytes) |
++-----------------+-----------------------------+-------------------+
 
 The header has the following structure:
 
@@ -34,12 +34,14 @@ Data field in query frames may be empty for functions 0 and 1. Empty data field 
 Data field in resonse frame for FC 0 or 1 shall have the following structure:
 
 +---------------------+-------------------------+---------------------------------+--------------------+
-| GPS data (80 bytes) | date and time (5 bytes) | radiation measurement (4 bytes) | reserved (9 bytes) |
+| GPS data (80 bytes) | date and time (5 bytes) | radiation measurement (4 bytes) | reserved (7 bytes) |
 +---------------------+-------------------------+---------------------------------+--------------------+
 
 Where:
 GPS data - left zero-padded GPS info in RMC/RMB format
 Date and time - DD (5 bits) MM (4 bits) YYY (8 bits) hh (5 bits) mm (6 bits) ss (6 bits), where YYY = current year - 2000
+
+At the end of each frame a CRC16 is appended.
 
 Example dataflow
 

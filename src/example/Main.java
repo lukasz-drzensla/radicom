@@ -42,11 +42,11 @@ class Main {
         //some wait for response
         frame = jradicom.rc_r_read(); //for testing - reply to ourselves
 
-        // for (int i = 0; i < 100; i++)
-        // {
-        //     System.out.println(Integer.toString(array[i]));
-        // }
-
+        for (int i = 0; i < 100; i++)
+        {
+            System.out.print("0x" + Integer.toHexString(frame[i]) + " ");
+        }
+        System.out.println("");
         jradicom.decode(frame, radappcb); //decode response
     }
 }
