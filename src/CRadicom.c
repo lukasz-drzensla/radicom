@@ -71,6 +71,19 @@ jintArray q_memread (JNIEnv* env, jobject obj)
     return jframe;
 }
 
+jintArray q_save (JNIEnv* env, jobject obj)
+{
+    jintArray jframe = (*env)->NewIntArray(env, RC_FRAME_SIZE);
+    int cframe[RC_FRAME_SIZE] = {0};
+    rc_q_save(frame, current_gpsreadout, current_datetime, current_radiation, RC_EC_OK);
+    for (int i = 0; i < RC_FRAME_SIZE; i++)
+    {
+        cframe[i] = (int)frame[i];
+    }
+    (*env)->SetIntArrayRegion(env, jframe, 0, RC_FRAME_SIZE, cframe);
+    return jframe;
+}
+
 jintArray r_read(JNIEnv *env, jobject obj)
 {
     jintArray jframe = (*env)->NewIntArray(env, RC_FRAME_SIZE);
